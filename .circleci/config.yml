@@ -1,0 +1,123 @@
+version: 2.1
+# Define the jobs we want to run for this project
+jobs:
+  build-and-test:
+    working_directory: ~/chat_app
+    docker:
+      - image: cimg/python:3.12.2
+        environment:
+          SECRET_KEY: Thi$IsMyT3$t$3cr3tK3y
+      - image: postgres:14
+        environment:
+          POSTGRES_USER: "chat_app"
+          POSTGRES_DB: "chat_app"
+          POSTGRES_PASSWORD: "chat_app"
+
+    steps:
+      - checkout
+      # NOTE: This will improve test performance but sometimes causes error if packages are removed. This need more test
+      # - restore_cache:
+      #     keys:
+      #       - be-dependencies-\{\{ checksum "poetry.lock" \}\}
+      #       - be-dependencies-
+
+      - run:
+          name: Installing BE Requirements
+          command: |
+            # cp .env.example .env
+            DATABASE_URL=$DATABASEURL
+            curl -sSL https://install.python-poetry.org | python3 -
+            POETRY_VIRTUALENVS_CREATE=false /home/circleci/.local/bin/poetry install
+
+      # NOTE: Dependent on the above commented code.
+      # - save_cache:
+      #     paths:
+      #       - "~/.cache/pypoetry/virtualenvs/*/lib/python3.12/site-packages"
+      #     key: be-dependencies-\{\{ checksum "poetry.lock" \}\}
+
+      - run:
+          name: Running BE Test
+          command: |
+            python manage.py migrate
+            python -m pytest
+
+  update-backend:
+    working_directory: ~/chat_app
+    docker:
+      - image: arvindr226/alpine-ssh
+    steps:
+      - checkout
+      - run:
+          name: Copy project to instance
+          command: |
+            scp -oStrictHostKeyChecking=no -r ./* $USER@$IP:~/chat_app
+
+      # Path specified below will depend where the project folder is saved in the server.
+      - run:
+          name: Clone and update project
+          command: |
+
+            ssh -oStrictHostKeyChecking=no -v $USER@$IP \<< 'EOF'
+
+            cd $HOME/chat_app
+
+            docker compose down
+            docker compose up --build -d
+            docker compose exec web python manage.py migrate
+            docker compose exec web python manage.py collectstatic --no-input
+            docker compose restart
+                # Optionally, add more commands (e.g., restarting services)
+            EOF
+
+  # update-backend-prod:
+  #   working_directory: ~/chat_app
+  #   docker:
+  #     - image: arvindr226/alpine-ssh
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Copy project to instance
+  #         command: |
+  #           scp -oStrictHostKeyChecking=no -r ./* $STAGINGUSER@$IPSTAGING:~/chat_app
+  #           scp -oStrictHostKeyChecking=no -r .env.example $STAGINGUSER@$IPSTAGING:~/chat_app/.env
+  #
+  #     # Path specified below will depend where the project folder is saved in the server.
+  #     - run:
+  #         name: Clone and update project
+  #         command: |
+  #
+  #           ssh -oStrictHostKeyChecking=no -v $STAGINGUSER@$IPSTAGING \<< 'EOF'
+  #
+  #           cd $HOME/chat_app
+  #
+  #           docker compose down
+  #           docker compose up --build -d
+  #           docker compose exec web python manage.py migrate
+  #           docker compose exec web python manage.py collectstatic --no-input
+  #               # Optionally, add more commands (e.g., restarting services)
+  #           EOF
+
+# Main circleci config for Job flow.
+workflows:
+  version: 2
+  build-project:
+    jobs:
+      - build-and-test:
+          filters:
+            branches:
+              only:
+                - output-blueprint
+      - update-backend:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only:
+                - output-blueprint
+      # - update-backend-prod:
+      #     requires:
+      #       - build-and-test
+      #     filters:
+      #       branches:
+      #         only:
+      #           - output-prod
