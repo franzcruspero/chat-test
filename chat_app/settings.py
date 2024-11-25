@@ -41,8 +41,8 @@ FRONTEND_URL = env.str("FRONTEND_URL", "http://localhost:3000")
 INSTALLED_APPS = [
     "unfold",
     "unfold.contrib.filters",
-    "unfold.contrib.forms",  
-    "unfold.contrib.inlines",  
+    "unfold.contrib.forms",
+    "unfold.contrib.inlines",
     "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -86,6 +86,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "core",
     "users",
+    "chat",
 ]
 
 INSTALLED_APPS += THIRD_PARTY_APPS + LOCAL_APPS
@@ -95,13 +96,15 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "oauth2_provider.middleware.OAuth2TokenMiddleware","corsheaders.middleware.CorsMiddleware",
+    "oauth2_provider.middleware.OAuth2TokenMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",]
+    "allauth.account.middleware.AccountMiddleware",
+]
 
 ROOT_URLCONF = "chat_app.urls"
 
@@ -547,7 +550,7 @@ UNFOLD = {
                 ],
             },
         ],
-    }
+    },
 }
 
 CONSTANCE_CONFIG = {
@@ -564,3 +567,6 @@ CONSTANCE_CONFIG = {
     "META_KEYWORDS": ("keyword1, keyword2", ""),
     "META_DESCRIPTION": ("Meta Description", ""),
 }
+
+
+ASGI_APPLICATION = "chat_app.asgi.application"

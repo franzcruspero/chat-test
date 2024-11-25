@@ -1,4 +1,3 @@
-
 from allauth.account.views import confirm_email
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
@@ -16,15 +15,14 @@ from users.api.v1.views import JWTLoginView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("chat/", include("chat.urls")),
     path("api/v1/oauth2/", include(oauth2_urls, namespace="oauth2_provider")),
     path("accounts/", include("allauth.urls")),
-
     path(
         "password/reset/confirm/<uidb64>/<token>/",
         TemplateView.as_view(template_name="accounts/password_reset_confirm.html"),
         name="password_reset_confirm",
     ),
-
     # v1 APIs
     path(
         "api/v1/",
@@ -33,8 +31,13 @@ urlpatterns = [
                 [
                     path("auth/login/", JWTLoginView.as_view(), name="rest_login"),
                     path("auth/", include("dj_rest_auth.urls")),
-                    path("auth/registration/account-confirm-email/<str:key>/", confirm_email),
-                    path("auth/registration/", include("dj_rest_auth.registration.urls")),
+                    path(
+                        "auth/registration/account-confirm-email/<str:key>/",
+                        confirm_email,
+                    ),
+                    path(
+                        "auth/registration/", include("dj_rest_auth.registration.urls")
+                    ),
                     path(
                         "auth/token/",
                         TokenObtainPairView.as_view(),
